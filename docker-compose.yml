@@ -1,0 +1,56 @@
+services:
+  php:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    environment:
+      # off | debug — переключается в .env, требует перезапуска контейнера
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+      PHP_IDE_CONFIG: serverName=shortener
+      DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}?serverVersion=8.4&charset=utf8mb4"
+    volumes:
+      - ./app:/var/www/app
+      - composer-cache:/var/www/.composer
+    extra_hosts:
+      # На Linux host.docker.internal сам по себе не резолвится — добавляем вручную,
+      # иначе Xdebug не найдёт PhpStorm.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./app:/var/www/app:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+
+  db:
+    image: mysql:8.4
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      # Проброшен наружу, чтобы подключиться из PhpStorm (Database tool).
+      - "${MYSQL_PORT:-13306}:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  db-data:
+  composer-cache:

@@ -1,0 +1,7 @@
+/.env
+/.idea/
+/app/vendor/
+/app/var/
+/app/.env.local
+/app/.env.*.local
+/app/config/jwt/*.pem
