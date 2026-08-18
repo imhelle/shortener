@@ -32,4 +32,15 @@ console: ## make console c="cache:clear"
 db: ## mysql-клиент внутри контейнера
 	$(DC) exec db mysql -u$${MYSQL_USER:-shortener} -p$${MYSQL_PASSWORD:-shortener} $${MYSQL_DATABASE:-shortener}
 
-.PHONY: help build up down restart logs sh composer console db
+# Проверки перед коммитом. Каждая ловит свой класс ошибок:
+# --no-check-publish — проект не пакет, у него нет name и description;
+# lint:container добавляет сверку типов аргументов, которой нет в обычной сборке;
+# прод-прогрев собирает контейнер из веток when@prod — ошибка может жить
+# только там и в dev не проявиться никогда.
+lint: ## Проверки перед коммитом: composer, yaml, контейнер, прод-сборка
+	$(EXEC) composer validate --strict --no-check-publish
+	$(EXEC) php bin/console lint:yaml config
+	$(EXEC) php bin/console lint:container
+	$(EXEC) sh -c 'APP_ENV=prod php bin/console cache:warmup'
+
+.PHONY: help build up down restart logs sh composer console db lint
