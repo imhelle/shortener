@@ -32,6 +32,11 @@ console: ## make console c="cache:clear"
 db: ## mysql-клиент внутри контейнера
 	$(DC) exec db mysql -u$${MYSQL_USER:-shortener} -p$${MYSQL_PASSWORD:-shortener} $${MYSQL_DATABASE:-shortener}
 
+# Через $(EXEC), а не напрямую: PHPUnit пишет кэш в .phpunit.cache/,
+# и от root он стал бы недоступен PhpStorm.
+test: ## Тесты. make test c="--filter ShortCodeGenerator"
+	$(EXEC) php bin/phpunit $(c)
+
 # Проверки перед коммитом. Каждая ловит свой класс ошибок:
 # --no-check-publish — проект не пакет, у него нет name и description;
 # lint:container добавляет сверку типов аргументов, которой нет в обычной сборке;
@@ -43,4 +48,4 @@ lint: ## Проверки перед коммитом: composer, yaml, конт�
 	$(EXEC) php bin/console lint:container
 	$(EXEC) sh -c 'APP_ENV=prod php bin/console cache:warmup'
 
-.PHONY: help build up down restart logs sh composer console db lint
+.PHONY: help build up down restart logs sh composer console db test lint

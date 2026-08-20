@@ -13,3 +13,8 @@
 # Пересобирается сам при cache:clear в dev, растёт с каждым новым бандлом,
 # а конфиги у нас на YAML — в диффах от него один шум.
 /config/reference.php
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
