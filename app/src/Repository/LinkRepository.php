@@ -3,7 +3,11 @@
 namespace App\Repository;
 
 use App\Entity\Link;
+use App\Service\Exception\CodeAlreadyTakenException;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -11,9 +15,25 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class LinkRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private readonly Connection $connection)
     {
         parent::__construct($registry, Link::class);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function add(Link $link): void
+    {
+        try {
+            $this->connection->insert('link', [
+                'code'       => $link->getCode(),
+                'url'        => $link->getUrl(),
+                'created_at' => $link->getCreatedAt()->format('Y-m-d H:i:s'),
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            throw new CodeAlreadyTakenException($link->getCode(), previous: $e);
+        }
     }
 
     //    /**
