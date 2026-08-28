@@ -4,9 +4,11 @@ namespace App\Tests\Service;
 
 use App\Repository\LinkRepository;
 use App\Service\Exception\CodeAlreadyTakenException;
+use App\Service\Exception\InvalidUrlException;
 use App\Service\Exception\LinkShortenerException;
 use App\Service\LinkShortener;
 use App\Service\ShortCodeGeneratorInterface;
+use App\Service\UrlNormalizer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -36,9 +38,9 @@ final class LinkShortenerTest extends TestCase
         $repository = $this->createMock(LinkRepository::class);
         $repository->expects(self::once())->method('add');
 
-        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new NullLogger());
+        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
 
-        self::assertSame('aaaaaaaa', $shortener->shorten('https://example.com'));
+        self::assertSame('aaaaaaaa', $shortener->shorten('https://example.com')->code);
     }
 
     #[Test]
@@ -54,10 +56,10 @@ final class LinkShortenerTest extends TestCase
         });
 
         $shortener = new LinkShortener(
-            $repository, $this->generatorReturning('aaaaaaaa', 'bbbbbbbb'), new NullLogger(),
+            $repository, $this->generatorReturning('aaaaaaaa', 'bbbbbbbb'), new UrlNormalizer(), new NullLogger(),
         );
 
-        self::assertSame('bbbbbbbb', $shortener->shorten('https://example.com'));
+        self::assertSame('bbbbbbbb', $shortener->shorten('https://example.com')->code);
         self::assertSame(2, $calls);
     }
 
@@ -70,9 +72,38 @@ final class LinkShortenerTest extends TestCase
             ->expects(self::once())->method('add')
             ->willThrowException(new \RuntimeException('server has gone away'));
 
-        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new NullLogger());
+        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
 
         $this->expectException(LinkShortenerException::class);
         $shortener->shorten('https://example.com');
+    }
+
+    #[Test]
+    public function rejectsAnUnacceptableUrlBeforeTouchingStorage(): void
+    {
+        $repository = $this->createMock(LinkRepository::class);
+        // The gate stands in front of everything: no code drawn, no row written.
+        $repository->expects(self::never())->method('add');
+
+        $shortener = new LinkShortener(
+            $repository, $this->generatorReturning(), new UrlNormalizer(), new NullLogger(),
+        );
+
+        $this->expectException(InvalidUrlException::class);
+        $shortener->shorten('javascript:alert(1)');
+    }
+
+    #[Test]
+    public function reportsTheStoredUrlRatherThanTheInput(): void
+    {
+        $repository = $this->createStub(LinkRepository::class);
+
+        $shortener = new LinkShortener(
+            $repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger(),
+        );
+
+        // The caller must be able to show what was actually saved: "google.com"
+        // went in, "https://google.com" is what the code now points at.
+        self::assertSame('https://google.com', $shortener->shorten('google.com')->url->toString());
     }
 }

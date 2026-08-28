@@ -6,6 +6,7 @@ use App\Entity\Link;
 use App\Repository\LinkRepository;
 use App\Service\Exception\CodeAlreadyTakenException;
 use App\Service\Exception\LinkShortenerException;
+use App\ValueObject\ShortenedLink;
 use Psr\Log\LoggerInterface;
 
 readonly class LinkShortener implements LinkShortenerInterface
@@ -16,20 +17,25 @@ readonly class LinkShortener implements LinkShortenerInterface
     public function __construct(
         private LinkRepository $linkRepository,
         private ShortCodeGeneratorInterface $shortCodeGenerator,
+        private UrlNormalizer $urlNormalizer,
         private LoggerInterface $logger,
     ) {}
 
-    public function shorten(string $link): string
+    public function shorten(string $link): ShortenedLink
     {
+        // The single gate for every entry point: console, form and later the API.
+        // Throws InvalidUrlException, which the caller already handles as a
+        // LinkShortenerException, before a single code is drawn.
+        $url = $this->urlNormalizer->normalize($link);
         $lastCollision = null;
 
         for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
             $shortenedLink = $this->shortCodeGenerator->generate();
             try {
-                $linkEntity = new Link($link, $shortenedLink);
+                $linkEntity = new Link($url->toString(), $shortenedLink);
                 $this->linkRepository->add($linkEntity);
 
-                return $shortenedLink;
+                return new ShortenedLink($shortenedLink, $url);
             } catch (CodeAlreadyTakenException $e) {
                 // Expected: someone already holds this code, another draw may win.
                 $lastCollision = $e;

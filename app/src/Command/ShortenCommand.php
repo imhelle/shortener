@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Service\LinkShortenerInterface;
-use app\src\Service\Exception\LinkShortenerException;
+use App\Service\Exception\LinkShortenerException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -35,7 +35,9 @@ class ShortenCommand extends Command
 
         try {
             $result = $this->linkShortener->shorten($url);
-            $io->success("{$url} has been shortened to {$result}");
+            // Reports the stored URL, not the input: normalisation may have
+            // added a scheme or punycoded the host, and that must not surprise.
+            $io->success("{$result->url} has been shortened to {$result->code}");
             return Command::SUCCESS;
         } catch (LinkShortenerException $e) {
             $io->error($e->getMessage());
