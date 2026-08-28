@@ -36,6 +36,22 @@ class LinkRepository extends ServiceEntityRepository
         }
     }
 
+    /**
+     * Raw SQL on purpose: the redirect needs one column, not a hydrated entity.
+     *
+     * @throws Exception
+     */
+    public function findUrlByCode(string $code): ?string
+    {
+        // fetchOne() returns false when no row matched, unlike a null column value.
+        $url = $this->connection->fetchOne(
+            'SELECT url FROM link WHERE code = ?',
+            [$code],
+        );
+
+        return false === $url ? null : $url;
+    }
+
     //    /**
     //     * @return Link[] Returns an array of Link objects
     //     */
