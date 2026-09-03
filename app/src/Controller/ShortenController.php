@@ -8,6 +8,7 @@ use App\Service\LinkShortenerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -19,9 +20,17 @@ class ShortenController extends AbstractController
      * "/{code}", which requires exactly eight characters.
      */
     #[Route('/', name: 'app_shorten_form', methods: ['GET'])]
-    public function form(): Response
+    public function form(Request $request): Response
     {
-        return $this->renderForm();
+        // The result of the previous submission, left here by the redirect below.
+        // The template is unchanged: it still receives the same two variables,
+        // only their source moved.
+        $result = $this->takeResult($request);
+
+        return $this->renderForm(
+            shortUrl: $result['shortUrl'] ?? null,
+            target: $result['target'] ?? null,
+        );
     }
 
     #[Route('/', name: 'app_shorten_submit', methods: ['POST'])]
@@ -69,17 +78,49 @@ class ShortenController extends AbstractController
             );
         }
 
-        return $this->renderForm(
+        $this->addFlash('shortened', [
             // The host comes from the current request, so a proxy in front of the
             // app must be listed in trusted_proxies or the link points at nginx.
-            shortUrl: $this->generateUrl(
+            'shortUrl' => $this->generateUrl(
                 'app_redirect',
                 ['code' => $link->code],
                 UrlGeneratorInterface::ABSOLUTE_URL,
             ),
             // What was stored, which is rarely what was typed.
-            target: $link->url->toString(),
-        );
+            'target' => $link->url->toString(),
+        ]);
+
+        // Post/Redirect/Get: answering the POST directly would leave the browser
+        // holding a form submission, and F5 would offer to send it again — which
+        // here means a second short code for the same address, silently.
+        //
+        // 303, not 302: only 303 actually means "fetch the result with a separate
+        // GET". Browsers turn a 302 into a GET too, but that is history, not the
+        // specification, which says a 302 should have kept the method.
+        //
+        // Errors above deliberately keep answering on the POST: their status codes
+        // are the answer, and a redirect would flatten 422 and 403 into a plain 200.
+        return $this->redirectToRoute('app_shorten_form', status: Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Reads the flash and clears it in one move, which is what makes the result
+     * show exactly once: reload the page and the form is empty again, because
+     * the message is already gone.
+     *
+     * @return array{shortUrl?: string, target?: string}
+     */
+    private function takeResult(Request $request): array
+    {
+        $session = $request->getSession();
+
+        // Sessions are configured, but the interface Request::getSession() promises
+        // knows nothing about flashes; only this one does.
+        if (!$session instanceof FlashBagAwareSessionInterface) {
+            return [];
+        }
+
+        return $session->getFlashBag()->get('shortened')[0] ?? [];
     }
 
     /**
