@@ -9,9 +9,9 @@
 /vendor/
 ###< symfony/framework-bundle ###
 
-# Автогенерат: слепок конфигурации для автодополнения в PHP-конфигах.
-# Пересобирается сам при cache:clear в dev, растёт с каждым новым бандлом,
-# а конфиги у нас на YAML — в диффах от него один шум.
+# Generated: a snapshot of the configuration used for autocompletion in PHP
+# config files. Rebuilt by itself on cache:clear in dev, growing with every new
+# bundle, and our configs are YAML — in a diff it is nothing but noise.
 /config/reference.php
 
 ###> phpunit/phpunit ###

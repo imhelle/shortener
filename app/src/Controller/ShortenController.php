@@ -55,8 +55,8 @@ class ShortenController extends AbstractController
             return $this->renderForm(
                 url: $input,
                 error: '' === $input
-                    ? 'Введите ссылку.'
-                    : 'Не похоже на ссылку. Нужен адрес вида example.com или https://example.com/path.',
+                    ? 'Please enter a link.'
+                    : 'That does not look like a link. Use an address like example.com or https://example.com/path.',
                 status: Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         } catch (LinkShortenerException) {
@@ -64,7 +64,7 @@ class ShortenController extends AbstractController
             // here would only produce two records of one failure.
             return $this->renderForm(
                 url: $input,
-                error: 'Не удалось сократить ссылку. Попробуйте ещё раз.',
+                error: 'Could not shorten the link. Please try again.',
                 status: Response::HTTP_INTERNAL_SERVER_ERROR,
             );
         }

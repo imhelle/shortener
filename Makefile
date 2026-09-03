@@ -1,26 +1,26 @@
 .DEFAULT_GOAL := help
 DC := docker compose
-# Всё, что создаёт файлы в ./app, гоняем от www-data (uid хоста), а не от root.
+# Anything that creates files in ./app runs as www-data (the host uid), not root.
 EXEC := $(DC) exec -u www-data php
 
-help: ## Список команд
+help: ## List the available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-build: ## Собрать образы
+build: ## Build the images
 	$(DC) build
 
-up: ## Поднять контейнеры
+up: ## Start the containers
 	$(DC) up -d
 
-down: ## Остановить контейнеры
+down: ## Stop the containers
 	$(DC) down
 
-restart: down up ## Перезапустить
+restart: down up ## Restart
 
-logs: ## Логи всех сервисов
+logs: ## Follow the logs of every service
 	$(DC) logs -f
 
-sh: ## Шелл в php-контейнере
+sh: ## Shell inside the php container
 	$(EXEC) sh
 
 composer: ## make composer c="require symfony/uid"
@@ -29,20 +29,20 @@ composer: ## make composer c="require symfony/uid"
 console: ## make console c="cache:clear"
 	$(EXEC) php bin/console $(c)
 
-db: ## mysql-клиент внутри контейнера
+db: ## mysql client inside the container
 	$(DC) exec db mysql -u$${MYSQL_USER:-shortener} -p$${MYSQL_PASSWORD:-shortener} $${MYSQL_DATABASE:-shortener}
 
-# Через $(EXEC), а не напрямую: PHPUnit пишет кэш в .phpunit.cache/,
-# и от root он стал бы недоступен PhpStorm.
-test: ## Тесты. make test c="--filter ShortCodeGenerator"
+# Through $(EXEC) rather than directly: PHPUnit writes its cache into
+# .phpunit.cache/, and owned by root it would be unusable from PhpStorm.
+test: ## Run the tests. make test c="--filter ShortCodeGenerator"
 	$(EXEC) php bin/phpunit $(c)
 
-# Проверки перед коммитом. Каждая ловит свой класс ошибок:
-# --no-check-publish — проект не пакет, у него нет name и description;
-# lint:container добавляет сверку типов аргументов, которой нет в обычной сборке;
-# прод-прогрев собирает контейнер из веток when@prod — ошибка может жить
-# только там и в dev не проявиться никогда.
-lint: ## Проверки перед коммитом: composer, yaml, контейнер, прод-сборка
+# The checks to run before a commit. Each catches its own class of error:
+# --no-check-publish — the project is not a package, it has no name or description;
+# lint:container adds the argument type check a normal build never does;
+# the prod warmup assembles the container from when@prod branches — an error
+# can live only there and never show up in dev.
+lint: ## Pre-commit checks: composer, yaml, container, prod build
 	$(EXEC) composer validate --strict --no-check-publish
 	$(EXEC) php bin/console lint:yaml config
 	$(EXEC) php bin/console lint:container

@@ -67,8 +67,8 @@ final class RandomShortCodeGeneratorTest extends TestCase
 
     public static function lengthCases(): iterable
     {
-        yield 'минимальная' => [1];
-        yield 'обычная' => [8];
-        yield 'длинная' => [32];
+        yield 'minimum' => [1];
+        yield 'default' => [8];
+        yield 'long' => [32];
     }
 }

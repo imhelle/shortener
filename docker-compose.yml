@@ -6,7 +6,7 @@ services:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
     environment:
-      # off | debug — переключается в .env, требует перезапуска контейнера
+      # off | debug — switched in .env, needs a container restart
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
       PHP_IDE_CONFIG: serverName=shortener
       DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}?serverVersion=8.4&charset=utf8mb4"
@@ -14,8 +14,8 @@ services:
       - ./app:/var/www/app
       - composer-cache:/var/www/.composer
     extra_hosts:
-      # На Linux host.docker.internal сам по себе не резолвится — добавляем вручную,
-      # иначе Xdebug не найдёт PhpStorm.
+      # On Linux host.docker.internal does not resolve on its own — added by
+      # hand, or Xdebug would never find PhpStorm.
       - "host.docker.internal:host-gateway"
     depends_on:
       db:
@@ -40,7 +40,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      # Проброшен наружу, чтобы подключиться из PhpStorm (Database tool).
+      # Published so PhpStorm can reach it (Database tool).
       - "${MYSQL_PORT:-13306}:3306"
     volumes:
       - db-data:/var/lib/mysql
