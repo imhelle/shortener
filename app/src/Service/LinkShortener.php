@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use App\Entity\Link;
-use App\Repository\LinkRepository;
 use App\Service\Exception\CodeAlreadyTakenException;
 use App\Service\Exception\LinkShortenerException;
 use App\ValueObject\ShortenedLink;
@@ -15,7 +14,7 @@ readonly class LinkShortener implements LinkShortenerInterface
     private const MAX_ATTEMPTS = 3;
 
     public function __construct(
-        private LinkRepository $linkRepository,
+        private LinkStorageInterface $linkStorage,
         private ShortCodeGeneratorInterface $shortCodeGenerator,
         private UrlNormalizer $urlNormalizer,
         private LoggerInterface $logger,
@@ -33,7 +32,7 @@ readonly class LinkShortener implements LinkShortenerInterface
             $shortenedLink = $this->shortCodeGenerator->generate();
             try {
                 $linkEntity = new Link($url->toString(), $shortenedLink);
-                $this->linkRepository->add($linkEntity);
+                $this->linkStorage->add($linkEntity);
 
                 return new ShortenedLink($shortenedLink, $url);
             } catch (CodeAlreadyTakenException $e) {

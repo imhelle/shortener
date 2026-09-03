@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Repository\LinkRepository;
+use App\Service\LinkStorageInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,9 +20,9 @@ class RedirectController extends AbstractController
         requirements: ['code' => '[0-9A-Za-z]{8}'],
         methods: ['GET'],
     )]
-    public function __invoke(string $code, LinkRepository $linkRepository): RedirectResponse
+    public function __invoke(string $code, LinkStorageInterface $linkStorage): RedirectResponse
     {
-        $url = $linkRepository->findUrlByCode($code);
+        $url = $linkStorage->findUrlByCode($code);
 
         if (null === $url) {
             throw $this->createNotFoundException(sprintf('No link is registered for code "%s"', $code));

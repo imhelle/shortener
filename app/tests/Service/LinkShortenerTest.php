@@ -2,7 +2,7 @@
 
 namespace App\Tests\Service;
 
-use App\Repository\LinkRepository;
+use App\Service\LinkStorageInterface;
 use App\Service\Exception\CodeAlreadyTakenException;
 use App\Service\Exception\InvalidUrlException;
 use App\Service\Exception\LinkShortenerException;
@@ -35,10 +35,10 @@ final class LinkShortenerTest extends TestCase
     #[Test]
     public function returnsGeneratedCode(): void
     {
-        $repository = $this->createMock(LinkRepository::class);
-        $repository->expects(self::once())->method('add');
+        $storage = $this->createMock(LinkStorageInterface::class);
+        $storage->expects(self::once())->method('add');
 
-        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
+        $shortener = new LinkShortener($storage, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
 
         self::assertSame('aaaaaaaa', $shortener->shorten('https://example.com')->code);
     }
@@ -48,15 +48,15 @@ final class LinkShortenerTest extends TestCase
     {
         $calls = 0;
         // A stub, not a mock: the call count is asserted below by hand.
-        $repository = $this->createStub(LinkRepository::class);
-        $repository->method('add')->willReturnCallback(function () use (&$calls): void {
+        $storage = $this->createStub(LinkStorageInterface::class);
+        $storage->method('add')->willReturnCallback(function () use (&$calls): void {
             if (++$calls === 1) {
                 throw new CodeAlreadyTakenException('aaaaaaaa');
             }
         });
 
         $shortener = new LinkShortener(
-            $repository, $this->generatorReturning('aaaaaaaa', 'bbbbbbbb'), new UrlNormalizer(), new NullLogger(),
+            $storage, $this->generatorReturning('aaaaaaaa', 'bbbbbbbb'), new UrlNormalizer(), new NullLogger(),
         );
 
         self::assertSame('bbbbbbbb', $shortener->shorten('https://example.com')->code);
@@ -66,13 +66,13 @@ final class LinkShortenerTest extends TestCase
     #[Test]
     public function doesNotRetryWhenStorageIsBroken(): void
     {
-        $repository = $this->createMock(LinkRepository::class);
+        $storage = $this->createMock(LinkStorageInterface::class);
         // The point: one attempt, not three — retrying a dead database is pointless.
-        $repository
+        $storage
             ->expects(self::once())->method('add')
             ->willThrowException(new \RuntimeException('server has gone away'));
 
-        $shortener = new LinkShortener($repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
+        $shortener = new LinkShortener($storage, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger());
 
         $this->expectException(LinkShortenerException::class);
         $shortener->shorten('https://example.com');
@@ -81,12 +81,12 @@ final class LinkShortenerTest extends TestCase
     #[Test]
     public function rejectsAnUnacceptableUrlBeforeTouchingStorage(): void
     {
-        $repository = $this->createMock(LinkRepository::class);
+        $storage = $this->createMock(LinkStorageInterface::class);
         // The gate stands in front of everything: no code drawn, no row written.
-        $repository->expects(self::never())->method('add');
+        $storage->expects(self::never())->method('add');
 
         $shortener = new LinkShortener(
-            $repository, $this->generatorReturning(), new UrlNormalizer(), new NullLogger(),
+            $storage, $this->generatorReturning(), new UrlNormalizer(), new NullLogger(),
         );
 
         $this->expectException(InvalidUrlException::class);
@@ -96,10 +96,10 @@ final class LinkShortenerTest extends TestCase
     #[Test]
     public function reportsTheStoredUrlRatherThanTheInput(): void
     {
-        $repository = $this->createStub(LinkRepository::class);
+        $storage = $this->createStub(LinkStorageInterface::class);
 
         $shortener = new LinkShortener(
-            $repository, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger(),
+            $storage, $this->generatorReturning('aaaaaaaa'), new UrlNormalizer(), new NullLogger(),
         );
 
         // The caller must be able to show what was actually saved: "google.com"

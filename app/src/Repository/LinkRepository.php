@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Link;
 use App\Service\Exception\CodeAlreadyTakenException;
+use App\Service\LinkStorageInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
@@ -13,7 +14,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<Link>
  */
-class LinkRepository extends ServiceEntityRepository
+class LinkRepository extends ServiceEntityRepository implements LinkStorageInterface
 {
     public function __construct(ManagerRegistry $registry, private readonly Connection $connection)
     {
