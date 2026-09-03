@@ -9,14 +9,19 @@ use Doctrine\ORM\Mapping as ORM;
  * The database schema, written in PHP: Doctrine reads these attributes to
  * generate migrations and to check the mapping against the real table.
  *
- * Nothing constructs it. Writes go through NewLink and raw SQL, because a
- * failed flush() closes the EntityManager, which would make a retry after a
- * code collision impossible.
+ * Nothing constructs this class and nothing reads it. Writes go through
+ * NewLink and raw SQL, because a failed flush() closes the EntityManager,
+ * which would make a retry after a code collision impossible; the redirect
+ * reads its one column with raw SQL for the same kind of reason. A constructor
+ * and getters would therefore be dead code, and Doctrine needs neither: the
+ * mapping reads the properties directly, and hydration bypasses constructors.
+ * They come back the day reading goes through the ORM.
  */
 #[ORM\Entity(repositoryClass: LinkRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_link_code', columns: ['code'])]
 class Link
 {
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -31,30 +36,4 @@ class Link
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct( string $url, string $code, ?\DateTimeImmutable $createdAt = null)
-    {
-        $this->url = $url;
-        $this->code = $code;
-        $this->createdAt =  $createdAt ?? new \DateTimeImmutable();
-    }
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
-
-    public function getCode(): string
-    {
-        return $this->code;
-    }
-
-    public function getUrl(): string
-    {
-        return $this->url;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
 }
