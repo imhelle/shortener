@@ -5,6 +5,14 @@ namespace App\Entity;
 use App\Repository\LinkRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * The database schema, written in PHP: Doctrine reads these attributes to
+ * generate migrations and to check the mapping against the real table.
+ *
+ * Nothing constructs it. Writes go through NewLink and raw SQL, because a
+ * failed flush() closes the EntityManager, which would make a retry after a
+ * code collision impossible.
+ */
 #[ORM\Entity(repositoryClass: LinkRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_link_code', columns: ['code'])]
 class Link

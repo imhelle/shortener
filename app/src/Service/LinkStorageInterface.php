@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Entity\Link;
+use App\ValueObject\NewLink;
 use App\Service\Exception\CodeAlreadyTakenException;
 
 /**
@@ -19,7 +19,7 @@ interface LinkStorageInterface
     /**
      * @throws CodeAlreadyTakenException when another link already holds the code
      */
-    public function add(Link $link): void;
+    public function add(NewLink $link): void;
 
     /**
      * @return string|null the stored URL, or null when no link holds the code

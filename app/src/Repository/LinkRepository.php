@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Link;
 use App\Service\Exception\CodeAlreadyTakenException;
 use App\Service\LinkStorageInterface;
+use App\ValueObject\NewLink;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
@@ -24,16 +25,16 @@ class LinkRepository extends ServiceEntityRepository implements LinkStorageInter
     /**
      * @throws Exception
      */
-    public function add(Link $link): void
+    public function add(NewLink $link): void
     {
         try {
             $this->connection->insert('link', [
-                'code'       => $link->getCode(),
-                'url'        => $link->getUrl(),
-                'created_at' => $link->getCreatedAt()->format('Y-m-d H:i:s'),
+                'code'       => $link->code,
+                'url'        => $link->url->toString(),
+                'created_at' => $link->createdAt->format('Y-m-d H:i:s'),
             ]);
         } catch (UniqueConstraintViolationException $e) {
-            throw new CodeAlreadyTakenException($link->getCode(), previous: $e);
+            throw new CodeAlreadyTakenException($link->code, previous: $e);
         }
     }
 

@@ -2,9 +2,9 @@
 
 namespace App\Service;
 
-use App\Entity\Link;
 use App\Service\Exception\CodeAlreadyTakenException;
 use App\Service\Exception\LinkShortenerException;
+use App\ValueObject\NewLink;
 use App\ValueObject\ShortenedLink;
 use Psr\Log\LoggerInterface;
 
@@ -31,8 +31,7 @@ readonly class LinkShortener implements LinkShortenerInterface
         for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
             $shortenedLink = $this->shortCodeGenerator->generate();
             try {
-                $linkEntity = new Link($url->toString(), $shortenedLink);
-                $this->linkStorage->add($linkEntity);
+                $this->linkStorage->add(new NewLink($shortenedLink, $url));
 
                 return new ShortenedLink($shortenedLink, $url);
             } catch (CodeAlreadyTakenException $e) {
