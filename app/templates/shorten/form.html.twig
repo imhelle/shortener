@@ -1,13 +1,18 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Сократить ссылку{% endblock %}
+{% block title %}Shorten link{% endblock %}
 
 {% block body %}
-    <h1>Сократить ссылку</h1>
+    <h1>Shorten link</h1>
 
     {# No action attribute: the browser posts back to the current URL, so the
        form keeps working whatever path the page is served from. #}
     <form method="post">
+        {# Proof that this POST came from a page we rendered ourselves. A third
+           party can make the browser send the request with its cookies attached,
+           but Same-Origin Policy stops it from reading this value out of our
+           page, so it cannot fill the field in. #}
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('shorten') }}">
         {# type="text", not type="url": the browser would reject "google.com"
            for having no scheme, and adding one is exactly our job. #}
         <input
@@ -20,7 +25,7 @@
             placeholder="https://example.com/very/long/path"
             size="60"
         >
-        <button type="submit">Сократить</button>
+        <button type="submit">Shorten</button>
     </form>
 
     {% if error %}
@@ -29,10 +34,10 @@
 
     {% if shortUrl %}
         <p>
-            Готово: <a href="{{ shortUrl }}">{{ shortUrl }}</a>
+            Done: <a href="{{ shortUrl }}">{{ shortUrl }}</a>
         </p>
         {# The stored URL, shown because normalisation may have changed it:
            a bare host gains https://, an IDN host turns into punycode. #}
-        <p>Ведёт на {{ target }}</p>
+        <p>leads to {{ target }}</p>
     {% endif %}
 {% endblock %}

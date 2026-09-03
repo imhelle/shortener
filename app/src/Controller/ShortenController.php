@@ -33,6 +33,19 @@ class ShortenController extends AbstractController
         // InputBag::get() answers 400 by itself if "url" arrives as an array.
         $input = trim((string) $request->request->get('url', ''));
 
+        // A token that does not match means the request cannot prove it came
+        // from our own form. In practice that is a stale tab or an expired
+        // session far more often than an attack, so the answer offers a retry
+        // instead of accusing anyone — and the re-rendered form carries a fresh
+        // token, which makes the second attempt work.
+        if (!$this->isCsrfTokenValid('shorten', (string) $request->request->get('_csrf_token'))) {
+            return $this->renderForm(
+                url: $input,
+                error: 'The form is out of date. Please submit again.',
+                status: Response::HTTP_FORBIDDEN,
+            );
+        }
+
         try {
             $link = $linkShortener->shorten($input);
         } catch (InvalidUrlException) {
