@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Сократить ссылку{% endblock %}
+
+{% block body %}
+    <h1>Сократить ссылку</h1>
+
+    {# No action attribute: the browser posts back to the current URL, so the
+       form keeps working whatever path the page is served from. #}
+    <form method="post">
+        {# type="text", not type="url": the browser would reject "google.com"
+           for having no scheme, and adding one is exactly our job. #}
+        <input
+            type="text"
+            name="url"
+            value="{{ url }}"
+            inputmode="url"
+            autofocus
+            maxlength="2048"
+            placeholder="https://example.com/very/long/path"
+            size="60"
+        >
+        <button type="submit">Сократить</button>
+    </form>
+
+    {% if error %}
+        <p role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if shortUrl %}
+        <p>
+            Готово: <a href="{{ shortUrl }}">{{ shortUrl }}</a>
+        </p>
+        {# The stored URL, shown because normalisation may have changed it:
+           a bare host gains https://, an IDN host turns into punycode. #}
+        <p>Ведёт на {{ target }}</p>
+    {% endif %}
+{% endblock %}
