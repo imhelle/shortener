@@ -3,6 +3,7 @@
 namespace App\Tests\Service;
 
 use App\Service\RandomShortCodeGenerator;
+use App\Service\ShortCodeMode;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -63,6 +64,36 @@ final class RandomShortCodeGeneratorTest extends TestCase
     public function respectsConfiguredLength(int $length): void
     {
         self::assertSame($length, strlen((new RandomShortCodeGenerator($length))->generate()));
+    }
+
+    /**
+     * Not a single draw: one code could be all-lowercase by luck even in strict
+     * mode, so the check needs enough characters for a capital to be inevitable.
+     */
+    #[Test]
+    public function looseModeNeverProducesACapital(): void
+    {
+        $generator = new RandomShortCodeGenerator(32, ShortCodeMode::Loose);
+
+        $codes = '';
+        for ($draws = 0; $draws < 50; $draws++) {
+            $codes .= $generator->generate();
+        }
+
+        self::assertMatchesRegularExpression('/^[0-9a-z]+$/', $codes);
+    }
+
+    #[Test]
+    public function strictModeUsesCapitals(): void
+    {
+        $generator = new RandomShortCodeGenerator(32, ShortCodeMode::Strict);
+
+        $codes = '';
+        for ($draws = 0; $draws < 50; $draws++) {
+            $codes .= $generator->generate();
+        }
+
+        self::assertMatchesRegularExpression('/[A-Z]/', $codes);
     }
 
     public static function lengthCases(): iterable

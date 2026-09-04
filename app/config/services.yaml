@@ -7,6 +7,9 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Chosen once, before the first link is handed out: switching strict -> loose
+    # later breaks every code that contains a capital. See App\Service\ShortCodeMode.
+    app.short_code_mode: '%env(enum:App\Service\ShortCodeMode:SHORT_CODE_MODE)%'
 
 services:
     # default configuration for services in *this* file
