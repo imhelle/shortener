@@ -44,6 +44,9 @@ services:
       - "${MYSQL_PORT:-13306}:3306"
     volumes:
       - db-data:/var/lib/mysql
+      # Runs once, while the volume is empty: creates the _test database and
+      # grants the app user rights on it.
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s

@@ -37,6 +37,12 @@ db: ## mysql client inside the container
 test: ## Run the tests. make test c="--filter ShortCodeGenerator"
 	$(EXEC) php bin/phpunit $(c)
 
+# The controller tests run against a separate database: in the test environment
+# Doctrine appends the _test suffix by itself. Re-run this after every new
+# migration, or the suite works against an outdated schema.
+test-db: ## Apply migrations to the test database
+	$(EXEC) php bin/console doctrine:migrations:migrate --env=test --no-interaction
+
 # The checks to run before a commit. Each catches its own class of error:
 # --no-check-publish — the project is not a package, it has no name or description;
 # lint:container adds the argument type check a normal build never does;
@@ -48,4 +54,4 @@ lint: ## Pre-commit checks: composer, yaml, container, prod build
 	$(EXEC) php bin/console lint:container
 	$(EXEC) sh -c 'APP_ENV=prod php bin/console cache:warmup'
 
-.PHONY: help build up down restart logs sh composer console db test lint
+.PHONY: help build up down restart logs sh composer console db test test-db lint
