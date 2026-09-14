@@ -76,6 +76,51 @@ final class ShortenControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function submittingTheSameLinkAgainReusesTheCode(): void
+    {
+        $this->client->request('GET', '/');
+
+        $first = $this->shorten('example.com/path');
+        $second = $this->shorten('example.com/path');
+
+        self::assertSame($first, $second);
+        // The point of the whole exercise: no second row for one address.
+        self::assertSame(1, $this->rowCount());
+    }
+
+    #[Test]
+    public function recognizesTheSameAddressWrittenDifferently(): void
+    {
+        $this->client->request('GET', '/');
+
+        // Two spellings the normalizer folds into one URL. A memory keyed by
+        // the typed string would hand out a second code here.
+        self::assertSame(
+            $this->shorten('example.com/path'),
+            $this->shorten('HTTPS://Example.com/path'),
+        );
+        self::assertSame(1, $this->rowCount());
+    }
+
+    #[Test]
+    public function forgetsWhenTheSessionEnds(): void
+    {
+        $this->client->request('GET', '/');
+        $first = $this->shorten('example.com/path');
+
+        // What a closed browser does: the session cookie is gone, so the next
+        // visitor is a stranger even on the same machine.
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', '/');
+        $second = $this->shorten('example.com/path');
+
+        self::assertNotSame($first, $second);
+        // Two codes for one address, which is what "within a session" means:
+        // this is a convenience for one visitor, not a rule about the table.
+        self::assertSame(2, $this->rowCount());
+    }
+
+    #[Test]
     public function storesTheNormalizedUrl(): void
     {
         $this->client->request('GET', '/');
@@ -120,6 +165,17 @@ final class ShortenControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
         self::assertSame(0, $this->rowCount());
+    }
+
+    /**
+     * Submits the form and returns the short link from the result page, leaving
+     * the browser on that page — where the form is ready to be submitted again.
+     */
+    private function shorten(string $url): string
+    {
+        $this->client->submitForm('Shorten', ['url' => $url]);
+
+        return $this->client->followRedirect()->filter('a')->text();
     }
 
     private function rowCount(): int

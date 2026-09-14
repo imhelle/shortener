@@ -22,5 +22,15 @@ services:
     App\:
         resource: '../src/'
 
+    # Two classes implement LinkShortenerInterface now, so the alias Symfony
+    # used to write by itself is gone and the choice has to be made here. The
+    # decorator is what everyone gets; it wraps the plain shortener, which stays
+    # reachable by its own class name for exactly this one wiring.
+    App\Service\LinkShortenerInterface: '@App\Service\RememberingLinkShortener'
+
+    App\Service\RememberingLinkShortener:
+        arguments:
+            $linkShortener: '@App\Service\LinkShortener'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
