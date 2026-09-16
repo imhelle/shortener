@@ -25,8 +25,14 @@ final class SessionLinkMemoryTest extends TestCase
      */
     private function memory(): SessionLinkMemory
     {
+        return $this->memoryOver(new Session(new MockArraySessionStorage()));
+    }
+
+    /** The same, over a session the test has already written to by hand. */
+    private function memoryOver(Session $session): SessionLinkMemory
+    {
         $request = new Request();
-        $request->setSession(new Session(new MockArraySessionStorage()));
+        $request->setSession($session);
 
         $stack = new RequestStack();
         $stack->push($request);
@@ -54,6 +60,41 @@ final class SessionLinkMemoryTest extends TestCase
 
         $memory->remember($this->link(1));
 
+        self::assertSame($this->link(1)->code, $memory->codeFor($this->url(1)));
+    }
+
+    #[Test]
+    public function ignoresAnEntryThatIsNotACode(): void
+    {
+        $session = new Session(new MockArraySessionStorage());
+        // Written the way a previous version of this class, or a hand, might
+        // have left it. The sound entry beside it is not decoration: without it
+        // a wrong key here would empty the memory, and this test would pass on
+        // a class that never looked at the session at all.
+        $session->set('shortened_links', [
+            'https://example.com/1' => '00000001',
+            'https://example.com/2' => ['nothing', 'like', 'a', 'code'],
+        ]);
+
+        $memory = $this->memoryOver($session);
+
+        self::assertSame('00000001', $memory->codeFor($this->url(1)), 'the sound entry should still be readable');
+        self::assertNull($memory->codeFor($this->url(2)), 'a value that is not a string is not an answer');
+    }
+
+    #[Test]
+    public function ignoresASessionValueThatIsNotAnArray(): void
+    {
+        $session = new Session(new MockArraySessionStorage());
+        $session->set('shortened_links', 'not an array at all');
+
+        $memory = $this->memoryOver($session);
+
+        self::assertNull($memory->codeFor($this->url(1)));
+
+        // And it recovers: the next write replaces the nonsense rather than
+        // trying to add to it.
+        $memory->remember($this->link(1));
         self::assertSame($this->link(1)->code, $memory->codeFor($this->url(1)));
     }
 
