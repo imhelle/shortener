@@ -24,10 +24,13 @@ final readonly class SessionLinkMemory implements LinkMemoryInterface
     private const KEY = 'shortened_links';
 
     /**
-     * Enough to cover a person working through a page of links, small enough
-     * that nobody can grow the session by submitting in a loop. The oldest
-     * entries fall off the front, so the recent ones — the ones likely to be
-     * submitted again — are the ones kept.
+     * Enough to cover someone working through a page of links, and capped
+     * because the whole session is read back and unserialized on every request
+     * that touches it: this array is paid for by all of them, not only by the
+     * one that grew it. Twenty entries at the 2048-byte URL that UrlNormalizer
+     * allows come to some 40 KB of worst case; ordinary URLs make it a
+     * hundredth of that. The oldest entries fall off the front, so the recent
+     * ones — the ones likely to be submitted again — are the ones kept.
      */
     private const CAPACITY = 20;
 
@@ -35,7 +38,7 @@ final readonly class SessionLinkMemory implements LinkMemoryInterface
 
     public function codeFor(Url $url): ?string
     {
-        $code = $this->read()[$url->toString()] ?? null;
+        $code = $this->read($this->session())[$url->toString()] ?? null;
 
         // Anything else means the session was written by another version of this
         // code, or by hand. Not our data, so not our answer.
@@ -50,7 +53,7 @@ final readonly class SessionLinkMemory implements LinkMemoryInterface
             return;
         }
 
-        $links = $this->read();
+        $links = $this->read($session);
 
         // Unset before set: PHP keeps insertion order, so re-adding an existing
         // key would leave it in its old place and let a link that is submitted
@@ -58,15 +61,15 @@ final readonly class SessionLinkMemory implements LinkMemoryInterface
         unset($links[$link->url->toString()]);
         $links[$link->url->toString()] = $link->code;
 
-        $session->set(self::KEY, array_slice($links, -self::CAPACITY, preserve_keys: true));
+        $session->set(self::KEY, array_slice($links, -self::CAPACITY));
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function read(): array
+    private function read(?SessionInterface $session): array
     {
-        $links = $this->session()?->get(self::KEY);
+        $links = $session?->get(self::KEY);
 
         return is_array($links) ? $links : [];
     }
