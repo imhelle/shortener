@@ -175,7 +175,10 @@ final class ShortenControllerTest extends WebTestCase
     {
         $this->client->submitForm('Shorten', ['url' => $url]);
 
-        return $this->client->followRedirect()->filter('a')->text();
+        // Scoped to the result block on purpose: a bare 'a' would take the
+        // first link on the page, so a navigation link added to the layout one
+        // day would make the comparisons above pass without proving anything.
+        return $this->client->followRedirect()->filter('[role="status"] a')->text();
     }
 
     private function rowCount(): int

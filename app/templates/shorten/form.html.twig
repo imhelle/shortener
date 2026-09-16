@@ -33,7 +33,10 @@
     {% endif %}
 
     {% if shortUrl %}
-        <p>
+        {# role="status" is the counterpart of the error's role="alert": both are
+           live regions, so a screen reader announces the result that appeared
+           after the redirect instead of leaving it to be found by hand. #}
+        <p role="status">
             Done: <a href="{{ shortUrl }}">{{ shortUrl }}</a>
         </p>
         {# The stored URL, shown because normalisation may have changed it:

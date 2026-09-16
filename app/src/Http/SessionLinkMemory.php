@@ -32,7 +32,7 @@ final readonly class SessionLinkMemory implements LinkMemoryInterface
      * hundredth of that. The oldest entries fall off the front, so the recent
      * ones — the ones likely to be submitted again — are the ones kept.
      */
-    private const CAPACITY = 20;
+    public const CAPACITY = 20;
 
     public function __construct(private RequestStack $requestStack) {}
 

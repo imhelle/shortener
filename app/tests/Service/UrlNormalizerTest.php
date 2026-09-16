@@ -46,6 +46,13 @@ class UrlNormalizerTest extends TestCase
         yield 'idn becomes punycode' => ['пример.рф', 'https://xn--e1afmkfd.xn--p1ai'];
         yield 'punycode stays' => ['xn--e1afmkfd.xn--p1ai', 'https://xn--e1afmkfd.xn--p1ai'];
         yield 'dashes in labels' => ['my-site.co.uk', 'https://my-site.co.uk'];
+
+        // The limit written out rather than read from UrlNormalizer::MAX_LENGTH:
+        // a test that follows the constant cannot notice the constant moving.
+        // 2048 is what a URL column of that size holds and what every browser
+        // and proxy on the way is known to survive.
+        $atTheLimit = 'https://example.com/' . str_repeat('a', 2048 - 20);
+        yield 'exactly at the length limit' => [$atTheLimit, $atTheLimit];
     }
 
     /**
@@ -69,7 +76,7 @@ class UrlNormalizerTest extends TestCase
         yield 'cloud metadata' => ['http://169.254.169.254/latest/meta-data/'];
         yield 'ipv6 loopback' => ['http://[::1]/'];
         yield 'header injection' => ["https://example.com/\r\nX-Injected: 1"];
-        yield 'too long' => ['https://example.com/' . str_repeat('a', UrlNormalizer::MAX_LENGTH)];
+        yield 'one byte over the length limit' => ['https://example.com/' . str_repeat('a', 2048 - 20 + 1)];
     }
 
 }
