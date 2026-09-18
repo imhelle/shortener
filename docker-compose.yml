@@ -10,6 +10,8 @@ services:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
       PHP_IDE_CONFIG: serverName=shortener
       DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}?serverVersion=8.4&charset=utf8mb4"
+      # Real environment variables beat app/.env, which ships an empty default.
+      APP_SECRET: ${APP_SECRET}
     volumes:
       - ./app:/var/www/app
       - composer-cache:/var/www/.composer
