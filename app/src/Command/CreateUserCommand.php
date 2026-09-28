@@ -47,10 +47,11 @@ class CreateUserCommand extends Command
         // secret never becomes a string anyone else can go back and find.
         $password = $io->askHidden('Password');
 
-        // An empty answer is what a bare Enter produces, and hidden input gives
-        // no way to notice it was one. Hashing it would succeed and store a
-        // perfectly usable hash of nothing at all.
-        if (null === $password || '' === $password) {
+        // A bare Enter, which hidden input gives no way to notice. It arrives as
+        // null, never as '': QuestionHelper swaps an empty answer for the
+        // question's default, and ours has none. Hashing it would succeed and
+        // store a perfectly usable hash of nothing at all.
+        if (null === $password) {
             $io->error('The password cannot be empty');
 
             return Command::FAILURE;
