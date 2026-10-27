@@ -1,0 +1,7 @@
+lexik_jwt_authentication:
+    # HS256: one shared secret both signs and verifies, so there is no
+    # public key and no passphrase. The value is the secret itself, not a
+    # path — Lexik reads a file only when the string names an existing one.
+    secret_key: '%env(JWT_SECRET)%'
+    encoder:
+        signature_algorithm: HS256
